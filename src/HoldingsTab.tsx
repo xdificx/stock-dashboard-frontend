@@ -1,65 +1,68 @@
-import api from "./client";
-import type {
-  Holding, ClosedPosition, Transaction, TransactionCreate,
-  CashFlow, CashFlowCreate, PortfolioSummary, AllocationItem, WatchlistItem,
-} from "@/lib/types";
+import { useState } from "react";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import EditHoldingDialog from "./EditHoldingDialog";
+import type { Holding } from "@/lib/types";
+import { formatPrice, formatPct, priceColorClass } from "@/lib/utils";
 
-export const portfolioApi = {
-  getSummary: () =>
-    api.get<PortfolioSummary>("/api/portfolio/summary").then((r) => r.data),
+export default function HoldingsTab() {
+  const { holdings } = usePortfolioStore();
+  const [editing, setEditing] = useState<Holding | null>(null);
 
-  getHoldings: () =>
-    api.get<Holding[]>("/api/portfolio/holdings").then((r) => r.data),
+  if (holdings.length === 0) {
+    return <p className="py-10 text-center text-muted-foreground text-sm">No holdings</p>;
+  }
 
-  getClosed: () =>
-    api.get<ClosedPosition[]>("/api/portfolio/closed").then((r) => r.data),
-
-  getAllocation: () =>
-    api.get<AllocationItem[]>("/api/portfolio/allocation").then((r) => r.data),
-
-  getDailyReturns: (period = 30) =>
-    api.get(`/api/portfolio/daily-returns?period=${period}`).then((r) => r.data),
-
-  // Transactions
-  getTransactions: () =>
-    api.get<Transaction[]>("/api/portfolio/transactions").then((r) => r.data),
-
-  addTransaction: (body: TransactionCreate) =>
-    api.post<Transaction>("/api/portfolio/transactions", body).then((r) => r.data),
-
-  updateTransaction: (id: number, body: Partial<TransactionCreate>) =>
-    api.put<Transaction>(`/api/portfolio/transactions/${id}`, body).then((r) => r.data),
-
-  deleteTransaction: (id: number) =>
-    api.delete(`/api/portfolio/transactions/${id}`),
-
-  // Holdings overrides
-  updateHoldingQty: (ticker: string, newQty: number) =>
-    api.put(`/api/portfolio/holdings/${ticker}/qty`, { new_qty: newQty }),
-
-  updateHoldingAvg: (ticker: string, newAvg: number) =>
-    api.put(`/api/portfolio/holdings/${ticker}/avg-price`, { new_avg: newAvg }),
-
-  deleteHolding: (ticker: string) =>
-    api.delete(`/api/portfolio/holdings/${ticker}`),
-
-  // Cash flows
-  getCashFlows: () =>
-    api.get<CashFlow[]>("/api/portfolio/cash-flows").then((r) => r.data),
-
-  addCashFlow: (body: CashFlowCreate) =>
-    api.post<CashFlow>("/api/portfolio/cash-flows", body).then((r) => r.data),
-
-  deleteCashFlow: (id: number) =>
-    api.delete(`/api/portfolio/cash-flows/${id}`),
-
-  // Watchlist
-  getWatchlist: () =>
-    api.get<WatchlistItem[]>("/api/portfolio/watchlist").then((r) => r.data),
-
-  addWatchlist: (ticker: string, name: string) =>
-    api.post<WatchlistItem>("/api/portfolio/watchlist", { ticker, name }).then((r) => r.data),
-
-  deleteWatchlist: (id: number) =>
-    api.delete(`/api/portfolio/watchlist/${id}`),
-};
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
+              <th className="pb-2 pr-4">Stock</th>
+              <th className="pb-2 pr-4 text-right">Qty</th>
+              <th className="pb-2 pr-4 text-right">Avg Price</th>
+              <th className="pb-2 pr-4 text-right">Current</th>
+              <th className="pb-2 pr-4 text-right">Value</th>
+              <th className="pb-2 pr-4 text-right">P&L</th>
+              <th className="pb-2 text-right">Return</th>
+              <th className="pb-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {holdings.map((h) => (
+              <tr key={h.ticker} className="border-b border-border/50 hover:bg-accent/30">
+                <td className="py-3 pr-4">
+                  <p className="font-medium">{h.name}</p>
+                  <p className="text-xs text-muted-foreground">{h.ticker} / {h.market}{h.is_etf ? " / ETF" : ""}</p>
+                </td>
+                <td className="py-3 pr-4 text-right tabular-nums">{h.qty.toLocaleString()}</td>
+                <td className="py-3 pr-4 text-right tabular-nums">{formatPrice(h.avg_price)}</td>
+                <td className="py-3 pr-4 text-right tabular-nums">
+                  {h.current_price ? formatPrice(h.current_price) : "-"}
+                </td>
+                <td className="py-3 pr-4 text-right tabular-nums">{formatPrice(h.eval_amount)}</td>
+                <td className={`py-3 pr-4 text-right tabular-nums ${priceColorClass(h.pnl)}`}>
+                  {formatPrice(h.pnl)}
+                </td>
+                <td className={`py-3 text-right tabular-nums font-medium ${priceColorClass(h.return_pct)}`}>
+                  {formatPct(h.return_pct)}
+                </td>
+                <td className="py-3 pl-3">
+                  <button
+                    onClick={() => setEditing(h)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Edit
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {editing && (
+        <EditHoldingDialog holding={editing} onClose={() => setEditing(null)} />
+      )}
+    </>
+  );
+}

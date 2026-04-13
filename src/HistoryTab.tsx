@@ -1,117 +1,56 @@
-import { create } from "zustand";
-import type {
-  Holding, ClosedPosition, Transaction, TransactionCreate,
-  CashFlow, CashFlowCreate, PortfolioSummary, AllocationItem,
-} from "@/lib/types";
-import { portfolioApi } from "@/api/portfolio";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { formatPrice, formatDate } from "@/lib/utils";
 
-interface PortfolioState {
-  holdings: Holding[];
-  closedPositions: ClosedPosition[];
-  transactions: Transaction[];
-  cashFlows: CashFlow[];
-  summary: PortfolioSummary | null;
-  allocation: AllocationItem[];
-  isLoading: boolean;
+export default function HistoryTab() {
+  const { transactions, deleteTransaction } = usePortfolioStore();
 
-  fetchAll: () => Promise<void>;
-  fetchHoldings: () => Promise<void>;
-  fetchTransactions: () => Promise<void>;
-  fetchCashFlows: () => Promise<void>;
+  if (transactions.length === 0)
+    return <p className="py-10 text-center text-muted-foreground text-sm">No transactions</p>;
 
-  addTransaction: (data: TransactionCreate) => Promise<void>;
-  deleteTransaction: (id: number) => Promise<void>;
-
-  updateHoldingQty: (ticker: string, newQty: number) => Promise<void>;
-  updateHoldingAvg: (ticker: string, newAvg: number) => Promise<void>;
-  deleteHolding: (ticker: string) => Promise<void>;
-
-  addCashFlow: (data: CashFlowCreate) => Promise<void>;
-  deleteCashFlow: (id: number) => Promise<void>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <th className="pb-2 pr-4">Date</th>
+            <th className="pb-2 pr-4">Type</th>
+            <th className="pb-2 pr-4">Stock</th>
+            <th className="pb-2 pr-4 text-right">Qty</th>
+            <th className="pb-2 pr-4 text-right">Price</th>
+            <th className="pb-2 text-right">Total</th>
+            <th className="pb-2" />
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((tx) => (
+            <tr key={tx.id} className="border-b border-border/50 hover:bg-accent/30">
+              <td className="py-3 pr-4 text-muted-foreground">{formatDate(tx.date)}</td>
+              <td className="py-3 pr-4">
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                  tx.type === "buy" ? "bg-up/15 text-up" : "bg-down/15 text-down"
+                }`}>
+                  {tx.type === "buy" ? "BUY" : "SELL"}
+                </span>
+              </td>
+              <td className="py-3 pr-4">
+                <p className="font-medium">{tx.name}</p>
+                <p className="text-xs text-muted-foreground">{tx.ticker}</p>
+              </td>
+              <td className="py-3 pr-4 text-right tabular-nums">{tx.qty.toLocaleString()}</td>
+              <td className="py-3 pr-4 text-right tabular-nums">{formatPrice(tx.price)}</td>
+              <td className="py-3 text-right tabular-nums">{formatPrice(tx.qty * tx.price)}</td>
+              <td className="py-3 pl-3">
+                <button
+                  onClick={() => { if (confirm("Delete this transaction?")) deleteTransaction(tx.id); }}
+                  className="text-xs text-muted-foreground hover:text-up transition-colors"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
-
-export const usePortfolioStore = create<PortfolioState>((set, get) => ({
-  holdings: [],
-  closedPositions: [],
-  transactions: [],
-  cashFlows: [],
-  summary: null,
-  allocation: [],
-  isLoading: false,
-
-  fetchAll: async () => {
-    set({ isLoading: true });
-    try {
-      const [summary, holdings, closed, allocation, transactions, cashFlows] =
-        await Promise.all([
-          portfolioApi.getSummary(),
-          portfolioApi.getHoldings(),
-          portfolioApi.getClosed(),
-          portfolioApi.getAllocation(),
-          portfolioApi.getTransactions(),
-          portfolioApi.getCashFlows(),
-        ]);
-      set({ summary, holdings, closedPositions: closed, allocation, transactions, cashFlows });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  fetchHoldings: async () => {
-    const [summary, holdings, allocation] = await Promise.all([
-      portfolioApi.getSummary(),
-      portfolioApi.getHoldings(),
-      portfolioApi.getAllocation(),
-    ]);
-    set({ summary, holdings, allocation });
-  },
-
-  fetchTransactions: async () => {
-    const transactions = await portfolioApi.getTransactions();
-    set({ transactions });
-  },
-
-  fetchCashFlows: async () => {
-    const cashFlows = await portfolioApi.getCashFlows();
-    set({ cashFlows });
-  },
-
-  addTransaction: async (data) => {
-    await portfolioApi.addTransaction(data);
-    await get().fetchAll();
-  },
-
-  deleteTransaction: async (id) => {
-    await portfolioApi.deleteTransaction(id);
-    await get().fetchAll();
-  },
-
-  updateHoldingQty: async (ticker, newQty) => {
-    await portfolioApi.updateHoldingQty(ticker, newQty);
-    await get().fetchHoldings();
-  },
-
-  updateHoldingAvg: async (ticker, newAvg) => {
-    await portfolioApi.updateHoldingAvg(ticker, newAvg);
-    await get().fetchHoldings();
-  },
-
-  deleteHolding: async (ticker) => {
-    await portfolioApi.deleteHolding(ticker);
-    await get().fetchAll();
-  },
-
-  addCashFlow: async (data) => {
-    await portfolioApi.addCashFlow(data);
-    const [cashFlows, summary] = await Promise.all([
-      portfolioApi.getCashFlows(),
-      portfolioApi.getSummary(),
-    ]);
-    set({ cashFlows, summary });
-  },
-
-  deleteCashFlow: async (id) => {
-    await portfolioApi.deleteCashFlow(id);
-    await get().fetchCashFlows();
-  },
-}));
