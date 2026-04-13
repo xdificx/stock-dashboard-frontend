@@ -1,26 +1,65 @@
-export const MARKET_INDEX_ORDER = [
-  "KOSPI", "KOSDAQ", "S&P500", "NASDAQ", "DOW", "USD_KRW", "US10Y", "VIX",
-] as const;
+import api from "./client";
+import type {
+  Holding, ClosedPosition, Transaction, TransactionCreate,
+  CashFlow, CashFlowCreate, PortfolioSummary, AllocationItem, WatchlistItem,
+} from "@/lib/types";
 
-export const CHART_TYPE_OPTIONS = [
-  { label: "5분", value: "5m" },
-  { label: "일", value: "1d" },
-  { label: "주", value: "1w" },
-  { label: "월", value: "1mo" },
-  { label: "년", value: "1y" },
-] as const;
+export const portfolioApi = {
+  getSummary: () =>
+    api.get<PortfolioSummary>("/api/portfolio/summary").then((r) => r.data),
 
-export const INDICATOR_OPTIONS = [
-  { label: "MA", value: "MA" },
-  { label: "RSI", value: "RSI" },
-  { label: "MACD", value: "MACD" },
-] as const;
+  getHoldings: () =>
+    api.get<Holding[]>("/api/portfolio/holdings").then((r) => r.data),
 
-export const ALLOCATION_COLORS = [
-  "#3b82f6", // 국내 개별주 - 파랑
-  "#6366f1", // 국내 ETF   - 인디고
-  "#10b981", // 해외 개별주 - 에메랄드
-  "#f59e0b", // 해외 ETF   - 앰버
-];
+  getClosed: () =>
+    api.get<ClosedPosition[]>("/api/portfolio/closed").then((r) => r.data),
 
-export const MARKET_INDEX_POLL_INTERVAL = 60_000; // 60초
+  getAllocation: () =>
+    api.get<AllocationItem[]>("/api/portfolio/allocation").then((r) => r.data),
+
+  getDailyReturns: (period = 30) =>
+    api.get(`/api/portfolio/daily-returns?period=${period}`).then((r) => r.data),
+
+  // Transactions
+  getTransactions: () =>
+    api.get<Transaction[]>("/api/portfolio/transactions").then((r) => r.data),
+
+  addTransaction: (body: TransactionCreate) =>
+    api.post<Transaction>("/api/portfolio/transactions", body).then((r) => r.data),
+
+  updateTransaction: (id: number, body: Partial<TransactionCreate>) =>
+    api.put<Transaction>(`/api/portfolio/transactions/${id}`, body).then((r) => r.data),
+
+  deleteTransaction: (id: number) =>
+    api.delete(`/api/portfolio/transactions/${id}`),
+
+  // Holdings overrides
+  updateHoldingQty: (ticker: string, newQty: number) =>
+    api.put(`/api/portfolio/holdings/${ticker}/qty`, { new_qty: newQty }),
+
+  updateHoldingAvg: (ticker: string, newAvg: number) =>
+    api.put(`/api/portfolio/holdings/${ticker}/avg-price`, { new_avg: newAvg }),
+
+  deleteHolding: (ticker: string) =>
+    api.delete(`/api/portfolio/holdings/${ticker}`),
+
+  // Cash flows
+  getCashFlows: () =>
+    api.get<CashFlow[]>("/api/portfolio/cash-flows").then((r) => r.data),
+
+  addCashFlow: (body: CashFlowCreate) =>
+    api.post<CashFlow>("/api/portfolio/cash-flows", body).then((r) => r.data),
+
+  deleteCashFlow: (id: number) =>
+    api.delete(`/api/portfolio/cash-flows/${id}`),
+
+  // Watchlist
+  getWatchlist: () =>
+    api.get<WatchlistItem[]>("/api/portfolio/watchlist").then((r) => r.data),
+
+  addWatchlist: (ticker: string, name: string) =>
+    api.post<WatchlistItem>("/api/portfolio/watchlist", { ticker, name }).then((r) => r.data),
+
+  deleteWatchlist: (id: number) =>
+    api.delete(`/api/portfolio/watchlist/${id}`),
+};
