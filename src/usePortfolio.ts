@@ -1,16 +1,12 @@
-import api from "./client";
-import type { OHLCVData } from "@/lib/types";
+import { useEffect } from "react";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
-interface ChartHistoryParams {
-  ticker: string;
-  chartType?: string;
-  period?: string;
-  interval?: string;
-  start?: string;
-  end?: string;
-}
+export function usePortfolio() {
+  const store = usePortfolioStore();
 
-export async function fetchChartHistory(params: ChartHistoryParams): Promise<OHLCVData[]> {
-  const res = await api.get("/api/chart/history", { params });
-  return res.data;
+  useEffect(() => {
+    store.fetchAll();
+  }, []);
+
+  return store;
 }

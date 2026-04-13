@@ -1,17 +1,15 @@
-import axios from "axios";
+import { useEffect } from "react";
+import { useMarketStore } from "@/stores/useMarketStore";
+import { MARKET_INDEX_POLL_INTERVAL } from "@/lib/constants";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  timeout: 15_000,
-});
+export function useMarketData() {
+  const { indices, isLoading, lastUpdated, fetchIndices } = useMarketStore();
 
-// 공통 에러 로깅
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    console.error("[API Error]", err.response?.status, err.config?.url, err.message);
-    return Promise.reject(err);
-  }
-);
+  useEffect(() => {
+    fetchIndices();
+    const timer = setInterval(fetchIndices, MARKET_INDEX_POLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, [fetchIndices]);
 
-export default api;
+  return { indices, isLoading, lastUpdated };
+}
