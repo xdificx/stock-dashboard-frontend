@@ -1,88 +1,83 @@
 import { useState } from "react";
-import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import type { Holding } from "@/lib/types";
+import { Calendar } from "lucide-react";
 
 interface Props {
-  holding: Holding;
-  onClose: () => void;
+  onApply: (start: string, end: string) => void;
+  onReset: () => void;
+  isCustom: boolean;
 }
 
-export default function EditHoldingDialog({ holding, onClose }: Props) {
-  const { updateHoldingQty, updateHoldingAvg, deleteHolding } = usePortfolioStore();
-  const [tab, setTab] = useState<"qty" | "avg">("qty");
-  const [value, setValue] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+export default function PeriodSelector({ onApply, onReset, isCustom }: Props) {
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState(new Date().toISOString().split("T")[0]);
+  const [open, setOpen] = useState(false);
 
-  const handleSave = async () => {
-    if (!value) return;
-    setSubmitting(true);
-    try {
-      if (tab === "qty") await updateHoldingQty(holding.ticker, parseFloat(value));
-      else await updateHoldingAvg(holding.ticker, parseFloat(value));
-      onClose();
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm(`${holding.name} 종목을 전체 삭제하시겠습니까?`)) return;
-    await deleteHolding(holding.ticker);
-    onClose();
+  const handleApply = () => {
+    if (!start || !end) return;
+    onApply(start, end);
+    setOpen(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-card border border-border rounded-lg w-80 p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium">{holding.name} 수정</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg">✕</button>
-        </div>
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs border transition-colors ${
+          isCustom
+            ? "border-primary text-primary bg-primary/10"
+            : "border-border text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <Calendar size={12} />
+        Period
+        {isCustom && (
+          <span
+            onClick={(e) => { e.stopPropagation(); onReset(); }}
+            className="ml-1 hover:text-up"
+          >
+            x
+          </span>
+        )}
+      </button>
 
-        {/* 탭 */}
-        <div className="flex gap-2 border-b border-border pb-2">
-          {(["qty", "avg"] as const).map((t) => (
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg p-4 shadow-xl w-64 space-y-3">
+          <p className="text-sm font-medium">Custom Period</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Start</label>
+              <input
+                type="date" value={start}
+                onChange={(e) => setStart(e.target.value)}
+                className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">End</label>
+              <input
+                type="date" value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
             <button
-              key={t}
-              onClick={() => { setTab(t); setValue(""); }}
-              className={`text-sm px-2 py-1 rounded transition-colors ${
-                tab === t ? "text-primary bg-primary/10" : "text-muted-foreground"
-              }`}
+              onClick={handleApply}
+              disabled={!start || !end}
+              className="flex-1 py-1.5 rounded bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50"
             >
-              {t === "qty" ? "수량 변경" : "평균단가 변경"}
+              Apply
             </button>
-          ))}
+            <button
+              onClick={() => setOpen(false)}
+              className="px-3 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground"
+            >
+              Close
+            </button>
+          </div>
         </div>
-
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">
-            현재 {tab === "qty" ? `수량: ${holding.qty}` : `평균단가: ${holding.avg_price.toLocaleString()}`}
-          </p>
-          <input
-            type="number" min="0"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={`새 ${tab === "qty" ? "수량" : "평균단가"} 입력`}
-            className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={handleSave}
-            disabled={!value || submitting}
-            className="flex-1 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
-          >
-            {submitting ? "저장 중..." : "저장"}
-          </button>
-          <button
-            onClick={handleDelete}
-            className="px-4 py-2 rounded-md bg-up/20 text-up text-sm hover:bg-up/30 transition-colors"
-          >
-            삭제
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

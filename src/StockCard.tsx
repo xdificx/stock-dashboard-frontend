@@ -1,49 +1,70 @@
-import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import { formatPrice, formatPct, priceColorClass, formatDate } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { stockApi } from "@/api/stock";
+import { useMarketStore } from "@/stores/useMarketStore";
+import type { StockPrice } from "@/lib/types";
+import { formatPct, priceColorClass } from "@/lib/utils";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
-export default function ClosedTab() {
-  const { closedPositions } = usePortfolioStore();
+interface Props {
+  ticker: string;
+  name: string;
+  market: string;
+}
 
-  if (closedPositions.length === 0)
-    return <p className="py-10 text-center text-muted-foreground text-sm">매도 완료 종목 없음</p>;
+export default function StockCard({ ticker, name, market }: Props) {
+  const [data, setData] = useState<StockPrice | null>(null);
+  const { indices } = useMarketStore();
+  const usdKrw = indices["USD_KRW"]?.price;
+
+  useEffect(() => {
+    setData(null);
+    stockApi.getPrice(ticker).then(setData);
+  }, [ticker]);
+
+  if (!data) {
+    return <div className="bg-card border border-border rounded-lg p-4 animate-pulse h-24" />;
+  }
+
+  const isUp = (data.chg_pct ?? 0) >= 0;
+  const colorCls = priceColorClass(data.chg_pct);
+  const priceKrw =
+    market === "US" && usdKrw && data.price ? Math.round(data.price * usdKrw) : null;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="pb-2 pr-4">종목</th>
-            <th className="pb-2 pr-4 text-right">수량</th>
-            <th className="pb-2 pr-4 text-right">평균 매수가</th>
-            <th className="pb-2 pr-4 text-right">평균 매도가</th>
-            <th className="pb-2 pr-4 text-right">실현 손익</th>
-            <th className="pb-2 pr-4 text-right">수익률</th>
-            <th className="pb-2 text-right">매도일</th>
-          </tr>
-        </thead>
-        <tbody>
-          {closedPositions.map((p) => (
-            <tr key={p.ticker} className="border-b border-border/50 hover:bg-accent/30">
-              <td className="py-3 pr-4">
-                <p className="font-medium">{p.name}</p>
-                <p className="text-xs text-muted-foreground">{p.ticker} · {p.market}</p>
-              </td>
-              <td className="py-3 pr-4 text-right tabular-nums">{p.qty.toLocaleString()}</td>
-              <td className="py-3 pr-4 text-right tabular-nums">{formatPrice(p.avg_buy)}</td>
-              <td className="py-3 pr-4 text-right tabular-nums">{formatPrice(p.avg_sell)}</td>
-              <td className={`py-3 pr-4 text-right tabular-nums ${priceColorClass(p.realized_pnl)}`}>
-                {formatPrice(p.realized_pnl)}
-              </td>
-              <td className={`py-3 pr-4 text-right tabular-nums font-medium ${priceColorClass(p.return_pct)}`}>
-                {formatPct(p.return_pct)}
-              </td>
-              <td className="py-3 text-right text-muted-foreground">
-                {p.last_sell ? formatDate(p.last_sell) : "-"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-5">
+      <div className={`p-2 rounded-lg ${isUp ? "bg-up/15" : "bg-down/15"}`}>
+        {isUp
+          ? <TrendingUp size={20} className="text-up" />
+          : <TrendingDown size={20} className="text-down" />
+        }
+      </div>
+      <div className="flex-1">
+        <div className="flex items-baseline gap-2">
+          <h2 className="font-semibold text-base">{name}</h2>
+          <span className="text-xs text-muted-foreground font-mono">{ticker}</span>
+          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">{market}</span>
+        </div>
+        <div className="flex items-baseline gap-3 mt-1">
+          <span className="text-2xl font-bold tabular-nums">
+            {data.price != null
+              ? market === "KR"
+                ? `${data.price.toLocaleString("ko-KR")} KRW`
+                : `$${data.price.toFixed(2)}`
+              : "-"}
+          </span>
+          {priceKrw && (
+            <span className="text-sm text-muted-foreground">
+              ~ {priceKrw.toLocaleString("ko-KR")} KRW
+            </span>
+          )}
+          <span className={`text-sm font-medium tabular-nums ${colorCls}`}>
+            {data.chg != null
+              ? `${isUp ? "+" : ""}${market === "KR" ? data.chg.toLocaleString() : data.chg.toFixed(2)}`
+              : ""}
+            {" "}({formatPct(data.chg_pct)})
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
