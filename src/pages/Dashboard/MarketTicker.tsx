@@ -4,10 +4,12 @@ import { formatPct, priceColorClass } from "@/lib/utils";
 
 function formatIndexPrice(label: string, price: number | null): string {
   if (price == null) return "-";
-  if (label === "USD_KRW") return price.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+  if (label === "USD_KRW") return Math.round(price).toLocaleString();
   if (label === "US10Y" || label === "VIX") return price.toFixed(2);
-  if (label === "KOSPI" || label === "KOSDAQ") return price.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
-  return price.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return price.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 const DISPLAY_LABELS: Record<string, string> = {
