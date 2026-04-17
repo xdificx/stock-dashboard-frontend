@@ -12,6 +12,14 @@ function formatIndexPrice(label: string, price: number | null): string {
   });
 }
 
+function formatChg(label: string, chg: number | null): string {
+  if (chg == null) return "";
+  const sign = chg >= 0 ? "+" : "";
+  if (label === "USD_KRW") return `${sign}${Math.round(chg).toLocaleString()}`;
+  if (label === "US10Y" || label === "VIX") return `${sign}${chg.toFixed(2)}`;
+  return `${sign}${chg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 const DISPLAY_LABELS: Record<string, string> = {
   "USD_KRW": "USD/KRW",
   "US10Y":   "US 10Y",
@@ -33,12 +41,15 @@ export default function MarketTicker() {
               <p className="text-xs text-muted-foreground mb-0.5">
                 {DISPLAY_LABELS[key] ?? key}
               </p>
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-1.5">
                 <span className="text-sm font-semibold tabular-nums">
                   {formatIndexPrice(key, idx.price)}
                 </span>
                 <span className={`text-xs tabular-nums ${colorCls}`}>
-                  {formatPct(idx.chg_pct)}
+                  {formatChg(key, idx.chg)}
+                </span>
+                <span className={`text-xs tabular-nums ${colorCls}`}>
+                  ({formatPct(idx.chg_pct)})
                 </span>
               </div>
             </div>
