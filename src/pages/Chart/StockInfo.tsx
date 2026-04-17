@@ -1,3 +1,6 @@
+// 재무 지표 (PER, PBR, ROE 등)는 FinancialTable로 통합됨
+// 이 컴포넌트는 해외 종목 기본 지표만 표시
+
 import { useEffect, useState } from "react";
 import { stockApi } from "@/api/stock";
 import { Info } from "lucide-react";
@@ -12,14 +15,19 @@ const TOOLTIPS: Record<string, string> = {
   "Dividend Yield": "연간 배당금 / 현재 주가 x 100",
 };
 
-interface Props {
-  ticker: string;
+function isOverseas(ticker: string): boolean {
+  return !ticker.endsWith(".KS") && !ticker.endsWith(".KQ");
 }
+
+interface Props { ticker: string }
 
 export default function StockInfo({ ticker }: Props) {
   const [info, setInfo] = useState<Record<string, string | number | null>>({});
   const [loading, setLoading] = useState(false);
   const [tooltip, setTooltip] = useState<string | null>(null);
+
+  // 국내 종목은 DART로 표시하므로 이 컴포넌트 숨김
+  if (!isOverseas(ticker)) return null;
 
   useEffect(() => {
     setLoading(true);
@@ -28,10 +36,7 @@ export default function StockInfo({ ticker }: Props) {
       .finally(() => setLoading(false));
   }, [ticker]);
 
-  // KEY_ORDER 순서로 필터링 — null 값도 표시 (-)
-  const entries = KEY_ORDER
-    .map((key) => [key, info[key] ?? null] as [string, string | number | null]);
-
+  const entries = KEY_ORDER.map((key) => [key, info[key] ?? null] as [string, string | number | null]);
   const hasAnyValue = entries.some(([, v]) => v != null);
 
   if (loading) {
