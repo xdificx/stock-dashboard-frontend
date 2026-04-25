@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 interface StatCardProps {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   sub?: ReactNode;
   className?: string;
