@@ -15,6 +15,7 @@ interface PortfolioState {
   isLoading: boolean;
   fetchAll: () => Promise<void>;
   fetchHoldings: () => Promise<void>;
+  fetchClosed: () => Promise<void>;
   fetchTransactions: () => Promise<void>;
   fetchCashFlows: () => Promise<void>;
   addTransaction: (data: TransactionCreate) => Promise<void>;
@@ -62,6 +63,11 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     set({ summary, holdings, allocation });
   },
 
+  fetchClosed: async () => {
+    const closedPositions = await portfolioApi.getClosed();
+    set({ closedPositions });
+  },
+
   fetchTransactions: async () => {
     const transactions = await portfolioApi.getTransactions();
     set({ transactions });
@@ -74,12 +80,12 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
 
   addTransaction: async (data) => {
     await portfolioApi.addTransaction(data);
-    await get().fetchAll();
+    await Promise.all([get().fetchHoldings(), get().fetchTransactions()]);
   },
 
   deleteTransaction: async (id) => {
     await portfolioApi.deleteTransaction(id);
-    await get().fetchAll();
+    await Promise.all([get().fetchHoldings(), get().fetchTransactions()]);
   },
 
   updateHoldingQty: async (ticker, newQty) => {
