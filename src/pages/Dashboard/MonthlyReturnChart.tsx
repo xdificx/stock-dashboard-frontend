@@ -20,22 +20,19 @@ export default function MonthlyReturnChart() {
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
 
-  // 페이지 로드 시 저장된 값 자동 로드 (빠름)
+  // 페이지 로드 시 저장된 값만 빠르게 조회 (KIS API 호출 없음)
   useEffect(() => {
-    api.get<MonthlyReturn[]>("/api/portfolio/monthly-returns", {
-      params: { target_pct: TARGET_PCT },
-      timeout: 120000,
-    })
+    api.get<MonthlyReturn[]>("/api/portfolio/monthly-returns/saved")
       .then((r) => setData(r.data))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, []);
 
-  // 새로 계산 (KIS API 호출 — 느림)
-  const recalculate = () => {
+  // 새로 계산 버튼 — KIS API 호출 (느림, 최초 1회 또는 재계산 시)
+  const recalculate = (forceRecalc = false) => {
     setCalculating(true);
     api.get<MonthlyReturn[]>("/api/portfolio/monthly-returns", {
-      params: { target_pct: TARGET_PCT, force_recalc: true },
+      params: { target_pct: TARGET_PCT, force_recalc: forceRecalc },
       timeout: 120000,
     })
       .then((r) => setData(r.data))
@@ -121,27 +118,34 @@ export default function MonthlyReturnChart() {
     <div className="bg-card border border-border rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium">월별 수익률</h3>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {validData.length > 0 && (
             <>
               <span>목표 달성 <span className="text-green-500 font-semibold">{achieved}/{validData.length}</span></span>
               <span>평균 <span className={parseFloat(avgReturn) >= TARGET_PCT ? "text-green-500 font-semibold" : "text-red-500 font-semibold"}>{avgReturn}%</span></span>
             </>
           )}
-          {failCount > 0 && <span className="text-yellow-500">{failCount}개 조회실패</span>}
+          {failCount > 0 && <span className="text-yellow-500">{failCount}개 실패</span>}
           <button
-            onClick={recalculate}
+            onClick={() => recalculate(false)}
             disabled={calculating}
-            className="px-2 py-1 rounded text-xs border border-border hover:bg-muted disabled:opacity-50 transition-colors"
+            className="px-2 py-1 rounded text-xs border border-border hover:bg-muted disabled:opacity-50"
           >
-            {calculating ? "계산 중..." : "새로 계산"}
+            {calculating ? "계산 중..." : "계산"}
+          </button>
+          <button
+            onClick={() => recalculate(true)}
+            disabled={calculating}
+            className="px-2 py-1 rounded text-xs border border-border hover:bg-muted disabled:opacity-50"
+          >
+            재계산
           </button>
         </div>
       </div>
 
       {calculating && (
         <div className="mb-3 text-xs text-muted-foreground text-center py-1 bg-muted/30 rounded">
-          KIS API에서 과거 종가 조회 중... (10~30초 소요)
+          KIS API 과거 종가 조회 중... (10~30초 소요)
         </div>
       )}
 
@@ -156,7 +160,7 @@ export default function MonthlyReturnChart() {
         <div className="h-48 flex flex-col items-center justify-center gap-3 text-muted-foreground">
           <p className="text-sm">저장된 수익률 데이터가 없습니다</p>
           <button
-            onClick={recalculate}
+            onClick={() => recalculate(false)}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90"
           >
             지금 계산하기
