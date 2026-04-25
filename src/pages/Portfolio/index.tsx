@@ -18,10 +18,33 @@ const TABS = [
 type TabId = typeof TABS[number]["id"];
 
 export default function Portfolio() {
-  const { isLoading, fetchAll } = usePortfolioStore();
+  const {
+    isLoading,
+    fetchHoldings,
+    fetchTransactions,
+    fetchCashFlows,
+    fetchClosed,
+  } = usePortfolioStore();
+
   const [activeTab, setActiveTab] = useState<TabId>("holdings");
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  // 탭별 필요한 데이터만 호출
+  useEffect(() => {
+    switch (activeTab) {
+      case "holdings":
+        fetchHoldings();
+        break;
+      case "closed":
+        fetchClosed();
+        break;
+      case "history":
+        fetchTransactions();
+        break;
+      case "cashflow":
+        fetchCashFlows();
+        break;
+    }
+  }, [activeTab]);
 
   return (
     <div className="p-6 space-y-5 max-w-6xl">
