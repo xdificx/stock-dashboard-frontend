@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type {
   Holding, ClosedPosition, Transaction, TransactionCreate,
-  CashFlow, CashFlowCreate, PortfolioSummary, AllocationItem,
+  CashFlow, CashFlowCreate, PortfolioSummary, AllocationItem, Dividend,
 } from "@/lib/types";
 import { portfolioApi } from "@/api/portfolio";
 
@@ -10,6 +10,7 @@ interface PortfolioState {
   closedPositions: ClosedPosition[];
   transactions: Transaction[];
   cashFlows: CashFlow[];
+  dividends: Dividend[];
   summary: PortfolioSummary | null;
   allocation: AllocationItem[];
   isLoading: boolean;
@@ -18,6 +19,9 @@ interface PortfolioState {
   fetchClosed: () => Promise<void>;
   fetchTransactions: () => Promise<void>;
   fetchCashFlows: () => Promise<void>;
+  fetchDividends: () => Promise<void>;
+  addDividend: (data: Omit<Dividend, 'id'>) => Promise<void>;
+  deleteDividend: (id: number) => Promise<void>;
   addTransaction: (data: TransactionCreate) => Promise<void>;
   deleteTransaction: (id: number) => Promise<void>;
   updateHoldingQty: (ticker: string, newQty: number) => Promise<void>;
@@ -32,6 +36,7 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
   closedPositions: [],
   transactions: [],
   cashFlows: [],
+  dividends: [],
   summary: null,
   allocation: [],
   isLoading: false,
@@ -76,6 +81,29 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
   fetchCashFlows: async () => {
     const cashFlows = await portfolioApi.getCashFlows();
     set({ cashFlows });
+  },
+
+  fetchDividends: async () => {
+    const dividends = await portfolioApi.getDividends();
+    set({ dividends });
+  },
+
+  addDividend: async (data) => {
+    await portfolioApi.addDividend(data);
+    const [dividends, summary] = await Promise.all([
+      portfolioApi.getDividends(),
+      portfolioApi.getSummary(),
+    ]);
+    set({ dividends, summary });
+  },
+
+  deleteDividend: async (id) => {
+    await portfolioApi.deleteDividend(id);
+    const [dividends, summary] = await Promise.all([
+      portfolioApi.getDividends(),
+      portfolioApi.getSummary(),
+    ]);
+    set({ dividends, summary });
   },
 
   addTransaction: async (data) => {
