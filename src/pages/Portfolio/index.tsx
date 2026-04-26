@@ -5,14 +5,16 @@ import HoldingsTab from "./HoldingsTab";
 import ClosedTab from "./ClosedTab";
 import HistoryTab from "./HistoryTab";
 import CashFlowTab from "./CashFlowTab";
+import DividendsTab from "./DividendsTab";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { id: "holdings", label: "Holdings" },
-  { id: "closed",   label: "Closed" },
-  { id: "history",  label: "History" },
-  { id: "cashflow", label: "Cash Flow" },
+  { id: "holdings",  label: "Holdings" },
+  { id: "closed",    label: "Closed" },
+  { id: "history",   label: "History" },
+  { id: "cashflow",  label: "Cash Flow" },
+  { id: "dividends", label: "Dividends" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -24,6 +26,7 @@ export default function Portfolio() {
     fetchTransactions,
     fetchCashFlows,
     fetchClosed,
+    fetchDividends,
   } = usePortfolioStore();
 
   const [activeTab, setActiveTab] = useState<TabId>("holdings");
@@ -42,6 +45,9 @@ export default function Portfolio() {
         break;
       case "cashflow":
         fetchCashFlows();
+        break;
+      case "dividends":
+        fetchDividends();
         break;
     }
   }, [activeTab]);
@@ -76,6 +82,7 @@ export default function Portfolio() {
               {activeTab === "closed"    && <ClosedTab />}
               {activeTab === "history"   && <HistoryTab />}
               {activeTab === "cashflow"  && <CashFlowTab />}
+              {activeTab === "dividends" && <DividendsTab />}
             </>
           )}
         </div>
