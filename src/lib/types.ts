@@ -118,3 +118,12 @@ export interface WatchlistItem {
   ticker: string;
   name: string;
 }
+
+export interface Dividend {
+  id: number;
+  ticker: string;
+  name: string;
+  amount: number;
+  date: string;
+  note: string;
+}
