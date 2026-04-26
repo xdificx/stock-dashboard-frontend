@@ -68,8 +68,10 @@ export interface ClosedPosition {
 
 export interface PortfolioSummary {
   net_cash: number;
+  cash_balance: number;
   total_invested: number;
   total_eval: number;
+  total_assets: number;
   total_pnl: number;
   total_return_pct: number;
 }
