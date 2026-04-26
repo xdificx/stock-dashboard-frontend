@@ -18,6 +18,7 @@ export default function TransactionForm() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [isEtf, setIsEtf] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [broker, setBroker] = useState<"samsung" | "toss">("samsung");
 
   const handleSearch = async (q: string) => {
     setQuery(q);
@@ -46,6 +47,7 @@ export default function TransactionForm() {
         qty: parseFloat(qty),
         price: parseFloat(price),
         date,
+        broker,
       });
       setQuery(""); setSelected(null); setQty(""); setPrice("");
       setDate(new Date().toISOString().split("T")[0]);
@@ -151,14 +153,30 @@ export default function TransactionForm() {
           />
         </div>
       </div>
-      <label className="flex items-center gap-2 text-sm cursor-pointer">
-        <input
-          type="checkbox" checked={isEtf}
-          onChange={(e) => setIsEtf(e.target.checked)}
-          className="accent-primary"
-        />
-        ETF
-      </label>
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox" checked={isEtf}
+            onChange={(e) => setIsEtf(e.target.checked)}
+            className="accent-primary"
+          />
+          ETF
+        </label>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">증권사</span>
+          {(["samsung", "toss"] as const).map((b) => (
+            <button
+              key={b}
+              onClick={() => setBroker(b)}
+              className={`px-3 py-1 rounded text-xs transition-colors ${
+                broker === b ? "bg-primary/20 text-primary font-medium" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {b === "samsung" ? "삼성" : "토스"}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex gap-2 pt-1">
         <button
           onClick={handleSubmit}
